@@ -83,8 +83,8 @@ astroshield/
 ### 1. Clonar el repositorio
 
 ```bash
-git clone https://github.com/TU_USUARIO/NOMBRE_DEL_REPO.git
-cd NOMBRE_DEL_REPO
+git clone https://github.com/Mald0nad00/AstroShield.git
+cd AstroShield
 git checkout develop
 ```
 
