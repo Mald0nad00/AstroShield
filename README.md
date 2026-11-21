@@ -159,17 +159,15 @@ docker compose down
 Ejecutar desde la raíz del proyecto, con el entorno virtual activo:
 
 ```bash
-# 1. Preprocesar NEO (validación, escalado con StandardScaler)
-python ml/src/preprocess.py
-
-# 2. Entrenar K-Means (random_state=42) y calcular métricas
-python ml/src/train.py
-
-# 3. Ajustar el modelo de vecinos más cercanos (similitud)
-python ml/src/similarity.py
+# Validación + log1p(diámetros) + StandardScaler, K-Means (k=4, random_state=42),
+# barrido de métricas k=2..6 y NearestNeighbors. Tarda ~1.5 min.
+python ml/src/train.py            # o: python ml/src/train.py --k 2
 ```
 
-> Los nombres de los scripts son los propuestos para la estructura; ajústalos conforme se implementen.
+Genera `ml/artifacts/model.joblib` (preprocesador, K-Means, NN) y `ml/artifacts/metrics.json`.
+**El backend no arranca sin `model.joblib`**; si cambias `neo_v2.csv`, vuelve a entrenar.
+
+Resultados actuales (validación): k=4 → Silhouette 0.313, Davies-Bouldin 1.09; baseline k=2 → Silhouette 0.414.
 
 **Detalles del modelo**
 
@@ -183,16 +181,36 @@ Los artefactos generados (modelo, scaler, métricas) se guardan en `ml/artifacts
 
 ## Endpoints principales de la API
 
-> Propuesta inicial; se ajustará durante el desarrollo.
+**Guía para frontend con ejemplos de cada respuesta: [docs/API.md](docs/API.md).** Probador interactivo en <http://localhost:8000/docs>.
 
-| Método | Ruta | Descripción |
-|---|---|---|
-| `GET` | `/neo` | Lista de NEO con filtros (grupo, diámetro, velocidad, MOID) |
-| `GET` | `/neo/{id}` | Ficha detallada de un NEO |
-| `GET` | `/satcat` | Lista de objetos SATCAT con filtros (tipo, régimen orbital) |
-| `GET` | `/satcat/{id}` | Ficha detallada de un objeto SATCAT |
-| `POST` | `/ia/inferencia` | Grupo asignado y objetos similares |
-| `GET` | `/ia/clusters` | Resumen y características de cada grupo |
+| Método | Ruta | Descripción | Req. |
+|---|---|---|---|
+| `GET` | `/health` | Estado y número de registros cargados | — |
+| `GET` | `/filtros` | Opciones para selects y rangos de sliders | RF02 |
+| `GET` | `/search?q=` | Búsqueda por nombre/id en ambos catálogos | RF01 |
+| `GET` | `/neo` | Lista paginada con filtros | RF01, RF02, RF09 |
+| `GET` | `/neo/stats` | KPIs, histogramas de diámetro y velocidad, conteo por grupo | RF05, gráf. 2–4 |
+| `GET` | `/neo/scatter` | Puntos diámetro vs velocidad por grupo (`limit`, máx. 20000) | gráf. 1 |
+| `GET` | `/neo/compare?a=&b=` | Dos NEO lado a lado | RF04, gráf. 5 |
+| `GET` | `/neo/{id}` | Ficha + unidades + todas sus aproximaciones | RF03 |
+| `GET` | `/satcat` | Lista paginada con filtros | RF01, RF02, RF08 |
+| `GET` | `/satcat/stats` | KPIs, por tipo, por régimen, propietarios, lanzamientos/año, inclinación | RF08, gráf. 6 |
+| `GET` | `/satcat/{norad_id}` | Ficha del objeto | RF03 |
+| `POST` | `/ia/inferencia` | Grupo asignado y objetos similares (por `id` o por las 5 variables) | RF06, RF07 |
+| `GET` | `/ia/clusters` | Resumen de cada grupo (tamaño, % peligrosos, media/mediana/rango) | RF06 |
+| `GET` | `/ia/metricas` | Métricas del modelo | — |
+
+**Filtros NEO** (`/neo`, `/neo/stats`, `/neo/scatter`): `q`, `cluster` (repetible: `?cluster=1&cluster=3`), `hazardous`,
+`diam_min`/`diam_max` (km), `vel_min`/`vel_max` (km/s), `moid_min`/`moid_max` (UA).
+**Filtros SATCAT**: `q`, `object_type` (`PAY`, `R/B`, `DEB`, `UNK`, repetible), `regime` (`LEO`, `MEO`, `GEO`, `HEO`, `NO_TERRESTRE`, `DESCONOCIDO`), `owner`, `in_orbit`.
+**Listas**: `page`, `page_size` (máx. 500), `sort`, `desc`. Respuesta: `{total, page, page_size, items}`.
+`/stats` acepta `bins` (5–100).
+
+Notas de datos:
+- Los grupos se numeran **1..4** (como en los mockups).
+- En `neo_v2.csv` un mismo NEO aparece una vez por aproximación (90,836 filas, 27,423 objetos). Las listas devuelven filas; la ficha, la comparación y la inferencia por `id` usan la aproximación más cercana.
+- El dataset no tiene MOID real: se usa `miss_distance` convertido a UA (`miss_distance_au`). La velocidad viene en km/h y se expone también en km/s (`velocity_km_s`).
+- El régimen orbital SATCAT se deriva de apogeo/perigeo (LEO < 2000 km, GEO ≈ 35786 km, MEO entre ambos, HEO excéntricas).
 
 **Ejemplo de petición a `/ia/inferencia`** (valores ilustrativos):
 
@@ -221,6 +239,8 @@ Los artefactos generados (modelo, scaler, métricas) se guardan en `ml/artifacts
   "tiempo_ms": 120
 }
 ```
+
+También basta `{"id": 2162635}`; `k` (1–50, por defecto 5) controla cuántos similares devolver. Cada similar incluye `id`, `name`, `cluster` y `distancia`.
 
 ## Pruebas
 
