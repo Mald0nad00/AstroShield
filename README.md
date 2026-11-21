@@ -128,6 +128,8 @@ uvicorn app.main:app --reload --port 8000
 
 ### 5. Frontend (React)
 
+La interfaz ya está implementada. Ver [frontend/README.md](frontend/README.md) para sus pantallas, configuración, pruebas y diferencias entre la maqueta y los datos reales.
+
 En **otra terminal**:
 
 ```bash

@@ -1,0 +1,15 @@
+<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="280" height="280" viewBox="0 0 280 280" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="Esfera">
+<g clip-path="url(#clip0_0_75)">
+<rect width="280" height="280" rx="140" fill="#133049"/>
+<circle id="Luz" cx="98" cy="70" r="112" fill="#6CC7D1" fill-opacity="0.13"/>
+<circle id="Luz interior" cx="91" cy="77" r="63" fill="#6CC7D1" fill-opacity="0.08"/>
+<circle id="Sombra" cx="238" cy="175" r="154" fill="#0C1118" fill-opacity="0.6"/>
+</g>
+</g>
+<defs>
+<clipPath id="clip0_0_75">
+<rect width="280" height="280" rx="140" fill="white"/>
+</clipPath>
+</defs>
+</svg>
