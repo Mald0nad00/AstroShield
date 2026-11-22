@@ -1,6 +1,6 @@
-# 🛰️ AstroShield
+# AstroShield
 
-Dashboard analítico interactivo para explorar **objetos cercanos a la Tierra (NEO)** y **objetos artificiales del catálogo SATCAT**. Incluye clustering con K-Means y recomendación de objetos similares (Nearest Neighbors).
+Dashboard analítico interactivo para explorar **objetos cercanos a la Tierra (NEO)** y **objetos artificiales del catálogo SATCAT**. Incluye búsqueda, filtros, fichas, gráficas y un explorador orbital ilustrativo. Para los NEO, también ofrece comparación de objetos, agrupamiento con K-Means y recomendaciones con Nearest Neighbors.
 
 > ⚠️ Los resultados son **exploratorios y comparativos**. No constituyen una predicción de impacto ni una clasificación oficial de riesgo.
 
@@ -11,33 +11,31 @@ Dashboard analítico interactivo para explorar **objetos cercanos a la Tierra (N
 1. [Arquitectura](#arquitectura)
 2. [Estructura del repositorio](#estructura-del-repositorio)
 3. [Requisitos previos](#requisitos-previos)
-4. [Instalación y ejecución local](#instalación-y-ejecución-local)
-5. [Ejecución con Docker](#ejecución-con-docker)
-6. [Pipeline de datos y modelo](#pipeline-de-datos-y-modelo)
-7. [Endpoints principales de la API](#endpoints-principales-de-la-api)
-8. [Pruebas](#pruebas)
-9. [Flujo de trabajo en equipo](#flujo-de-trabajo-en-equipo)
-10. [Solución de problemas](#solución-de-problemas)
-11. [Equipo](#equipo)
+4. [Frameworks y librerías](#frameworks-y-librerías)
+5. [Instalación y ejecución local](#instalación-y-ejecución-local)
+6. [Pantallas](#pantallas)
+7. [Pipeline de datos y modelo](#pipeline-de-datos-y-modelo)
+8. [Endpoints principales de la API](#endpoints-principales-de-la-api)
+9. [Pruebas](#pruebas)
+10. [Flujo de trabajo en equipo](#flujo-de-trabajo-en-equipo)
+11. [Solución de problemas](#solución-de-problemas)
+12. [Equipo](#equipo)
+13. [Alcance y limitaciones](#alcance-y-limitaciones)
 
 ---
 
 ## Arquitectura
 
-```
-┌────────────┐   HTTP/JSON   ┌────────────────┐   joblib   ┌─────────────────┐
-│  Frontend  │ ────────────► │ Backend (API)  │ ─────────► │  Modelo de IA   │
-│  React     │ ◄──────────── │ FastAPI        │ ◄───────── │  K-Means + NN   │
-└────────────┘               └───────┬────────┘            └─────────────────┘
-                                     │
-                              ┌──────▼──────┐
-                              │  data/*.csv │
-                              └─────────────┘
+```mermaid
+flowchart LR
+    frontend["React y Vite"] -->|"HTTP/JSON vía /api en desarrollo"| backend["FastAPI"]
+    backend -->|"Carga de catálogos"| data["CSV originales"]
+    backend -->|"Carga de artefactos"| model["K-Means y Nearest Neighbors"]
 ```
 
 | Componente | Tecnología | Puerto por defecto |
 |---|---|---|
-| Frontend | React + Vite | `5173` |
+| Frontend | React + TypeScript + Vite | `5173` |
 | Backend | Python + FastAPI + Uvicorn | `8000` |
 | Modelo | scikit-learn (K-Means, NearestNeighbors) | — |
 
@@ -48,142 +46,160 @@ astroshield/
 ├── data/
 │   ├── raw/              # CSV originales (neo_v2.csv, satcat.csv). NO se modifican
 │   └── processed/        # Datos preparados (generados por scripts)
-├── notebooks/            # EDA, experimentos y evaluación de métricas
+├── notebooks/            # Carpeta reservada para notebooks
 ├── ml/
-│   ├── src/              # Preprocesamiento, entrenamiento, similitud, evaluación
-│   └── artifacts/        # Modelo entrenado (.joblib), scaler, métricas
+│   ├── src/train.py      # Preprocesamiento, entrenamiento y evaluación
+│   └── artifacts/        # model.joblib y metrics.json incluidos
 ├── backend/
 │   ├── app/
 │   │   ├── routers/      # Endpoints (neo, satcat, ia)
 │   │   ├── schemas/      # Modelos Pydantic (validación de entradas/salidas)
 │   │   ├── services/     # Carga de datos, inferencia, similitud
 │   │   └── core/         # Configuración y variables de entorno
-│   └── tests/
-├── frontend/             # Aplicación React
+│   ├── tests/            # Pruebas de la API
+│   └── requirements.txt
+├── frontend/             # Aplicación React, pruebas y package-lock.json
 ├── docs/
-│   ├── entregas/         # PDFs de entregas
-│   └── mockups/          # Exportes de Figma
+│   ├── API.md            # Contrato de la API y ejemplos
+│   ├── entregas/         # PDF de requerimientos
+│   └── mockups/          # Carpeta reservada para mockups
 ├── .env.example
-├── docker-compose.yml
 └── README.md
 ```
 
 ## Requisitos previos
 
-| Herramienta | Versión recomendada | Verificar con |
+| Herramienta | Versión de referencia | Verificar con |
 |---|---|---|
-| Git | 2.30+ | `git --version` |
-| Python | 3.10+ | `python --version` |
-| Node.js | 18+ (LTS) | `node --version` |
-| npm | 9+ | `npm --version` |
-| Docker *(opcional)* | 24+ | `docker --version` |
+| Git | 2.51.0 | `git --version` |
+| Python | 3.13.14 | `python --version` |
+| Node.js | 22.19.0 | `node --version` |
+| npm | 11.8.0 | `npm --version` |
+
+## Frameworks y librerías
+
+El backend toma las versiones de `backend/requirements.txt`. En el frontend, `npm ci` instala las versiones fijadas en `frontend/package-lock.json`.
+
+### Backend (Python)
+
+| Framework o librería | Versión | Uso |
+|---|---|---|
+| FastAPI | 0.115.12 | API del backend |
+| Uvicorn | 0.34.2 | Servidor ASGI |
+| pandas | 2.2.3 | Procesamiento de datos |
+| scikit-learn | 1.6.1 | K-Means y Nearest Neighbors |
+| joblib | 1.4.2 | Persistencia del modelo entrenado |
+| python-dotenv | 1.1.0 | Variables de entorno |
+| pytest | 8.3.5 | Pruebas del backend |
+| httpx | 0.28.1 | Cliente HTTP para pruebas |
+
+### Frontend (Node.js)
+
+| Framework o librería | Versión | Uso |
+|---|---|---|
+| React | 19.3.1 | Interfaz de usuario |
+| React DOM | 19.3.1 | Renderizado en el navegador |
+| TypeScript | 5.9.3 | Tipado estático |
+| Vite | 7.3.8 | Servidor de desarrollo y compilación |
+| @vitejs/plugin-react | 5.2.0 | Integración de React con Vite |
+| TanStack React Query | 5.108.2 | Consumo y caché de la API |
+| Vitest | 4.1.12 | Pruebas del frontend |
+| Testing Library (React) | 16.3.3 | Pruebas de componentes |
+| jsdom | 27.4.0 | Entorno de pruebas |
+| @types/react | 19.3.0 | Tipos de React |
+| @types/react-dom | 19.3.0 | Tipos de React DOM |
+| @fontsource/ibm-plex-sans | 5.3.0 | Tipografía |
+| @fontsource/newsreader | 5.3.0 | Tipografía |
 
 ## Instalación y ejecución local
+
+La entrega se ejecuta localmente con Python y Node.js.
 
 ### 1. Clonar el repositorio
 
 ```bash
 git clone https://github.com/Mald0nad00/AstroShield.git
 cd AstroShield
-git checkout develop
 ```
 
-### 2. Configurar variables de entorno
+### 2. Verificar los archivos incluidos
 
-```bash
-cp .env.example .env
-```
+| Archivo | Contenido |
+|---|---|
+| `data/raw/neo_v2.csv` | 90,836 aproximaciones de NEO |
+| `data/raw/satcat.csv` | 70,587 registros SATCAT |
+| `ml/artifacts/model.joblib` | Preprocesador, modelo e índice de vecinos |
+| `ml/artifacts/metrics.json` | Métricas de entrenamiento y validación |
 
-Edita `.env` si necesitas cambiar puertos o URLs. **Nunca subas `.env` a GitHub.**
+### 3. Iniciar el backend
 
-### 3. Verificar los datos
+Desde la raíz del repositorio, ejecuta en PowerShell:
 
-Los CSV deben estar en:
-
-```
-data/raw/neo_v2.csv      # 90,836 filas · 10 columnas
-data/raw/satcat.csv      # 70,587 filas · 17 columnas
-```
-
-### 4. Backend (FastAPI)
-
-```bash
-cd backend
-
-# Crear y activar entorno virtual
+```powershell
 python -m venv .venv
-source .venv/Scripts/activate     # Windows (Git Bash)
-# source .venv/bin/activate       # macOS / Linux
-# .venv\Scripts\activate          # Windows (CMD / PowerShell)
-
-# Instalar dependencias
-pip install -r requirements.txt
-
-# Levantar la API con recarga automática
-uvicorn app.main:app --reload --port 8000
+.\.venv\Scripts\python.exe -m pip install -r backend/requirements.txt
+.\.venv\Scripts\python.exe -m uvicorn app.main:app --app-dir backend --host 127.0.0.1 --port 8000
 ```
 
-- API: <http://localhost:8000>
-- Documentación interactiva (Swagger): <http://localhost:8000/docs>
+En macOS y Linux, el intérprete del entorno virtual está en `.venv/bin/python`.
 
-### 5. Frontend (React)
+- Estado de la API en <http://127.0.0.1:8000/health>
+- Documentación interactiva en <http://127.0.0.1:8000/docs>
 
-La interfaz ya está implementada. Ver [frontend/README.md](frontend/README.md) para sus pantallas, configuración, pruebas y diferencias entre la maqueta y los datos reales.
+### 4. Iniciar el frontend
 
-En **otra terminal**:
+Abre otra terminal en la raíz del repositorio y ejecuta:
 
 ```bash
 cd frontend
-npm install
+npm ci
 npm run dev
 ```
 
-- Aplicación: <http://localhost:5173>
+Abre la aplicación en <http://127.0.0.1:5173>. Vite reenvía las solicitudes de `/api` a `http://127.0.0.1:8000`. Ambos servicios tienen valores predeterminados para el arranque local.
 
-## Ejecución con Docker
+### Configuración opcional
 
-Con Docker instalado, desde la raíz del proyecto:
+- Si el navegador consulta la API desde otro origen, configura `FRONTEND_URL` en un `.env` de la raíz con el origen exacto de la aplicación.
+- Para una compilación que apunte a otra API, configura `VITE_API_URL` en `frontend/.env` antes de ejecutar `npm run build`. Si usas la ruta predeterminada `/api`, el servidor que aloje la compilación debe redirigirla al backend.
+- Mantén los archivos `.env` fuera de Git.
 
-```bash
-docker compose up --build
-```
+## Pantallas
 
-Para detenerlo:
+| Pantalla | Funcionalidad |
+|---|---|
+| Inicio | Resumen de los catálogos y acceso a las secciones |
+| Catálogo NEO | Filtros, indicadores, gráficas, fichas y comparación entre dos objetos |
+| Análisis IA | Métricas del modelo, perfiles de grupo y búsqueda de NEO similares |
+| SATCAT | Filtros, indicadores, distribuciones y fichas de objetos artificiales |
+| Explorador orbital | Vistas ilustrativas del entorno terrestre y la vecindad NEO |
 
-```bash
-docker compose down
-```
-
-> Los `Dockerfile` y el `docker-compose.yml` se completarán cuando backend y frontend funcionen de forma local.
+Consulta el [README del frontend](frontend/README.md) para más detalles sobre las pantallas y su relación con la maqueta.
 
 ## Pipeline de datos y modelo
 
-Ejecutar desde la raíz del proyecto, con el entorno virtual activo:
+El repositorio incluye el modelo entrenado. Si cambias el catálogo NEO o necesitas regenerar el modelo, ejecuta desde la raíz:
 
-```bash
-# Validación + log1p(diámetros) + StandardScaler, K-Means (k=4, random_state=42),
-# barrido de métricas k=2..6 y NearestNeighbors. Tarda ~1.5 min.
-python ml/src/train.py            # o: python ml/src/train.py --k 2
+```powershell
+.\.venv\Scripts\python.exe ml/src/train.py
 ```
 
-Genera `ml/artifacts/model.joblib` (preprocesador, K-Means, NN) y `ml/artifacts/metrics.json`.
-**El backend no arranca sin `model.joblib`**; si cambias `neo_v2.csv`, vuelve a entrenar.
+El script valida las filas, aplica `log1p` a los diámetros, escala con `StandardScaler`, evalúa de 2 a 6 grupos y guarda el modelo de cuatro grupos y el índice de vecinos. Sobrescribe `ml/artifacts/model.joblib` y `ml/artifacts/metrics.json`. Reinicia la API después de regenerarlos.
 
-Resultados actuales (validación): k=4 → Silhouette 0.313, Davies-Bouldin 1.09; baseline k=2 → Silhouette 0.414.
+| Configuración | Silhouette | Davies-Bouldin | Calinski-Harabasz |
+|---|---|---|---|
+| Modelo incluido (4 grupos) | 0.3133 | 1.0913 | 10086.93 |
+| Referencia (2 grupos) | 0.4136 | 1.0533 | 11567.10 |
 
-**Detalles del modelo**
+Los valores corresponden a validación. Ambas configuraciones superan el objetivo de Silhouette de 0.25. La referencia de dos grupos obtuvo el mayor Silhouette.
 
-- **Variables:** `est_diameter_min`, `est_diameter_max`, `relative_velocity`, `miss_distance`, `absolute_magnitude`.
-- **Excluidas del clustering:** `id`, `name`, `hazardous` (se conserva solo como etiqueta de referencia).
-- **Partición:** 80 % entrenamiento / 20 % validación, `random_state = 42`. El escalado se ajusta solo con los datos de entrenamiento.
-- **Métricas:** Silhouette Score (principal), Davies-Bouldin (secundaria) y Calinski-Harabasz (complementaria).
-- **Baseline:** K-Means con `n_clusters = 2`. Objetivo mínimo: Silhouette ≥ 0.25.
-
-Los artefactos generados (modelo, scaler, métricas) se guardan en `ml/artifacts/`.
+- **Variables.** `est_diameter_min`, `est_diameter_max`, `relative_velocity`, `miss_distance` y `absolute_magnitude`.
+- **Campos excluidos del agrupamiento.** `id`, `name` y `hazardous`. Este último se conserva como etiqueta de referencia.
+- **Partición.** 80 % para entrenamiento y 20 % para validación, con `random_state = 42`. El escalado se ajusta con los datos de entrenamiento.
 
 ## Endpoints principales de la API
 
-**Guía para frontend con ejemplos de cada respuesta: [docs/API.md](docs/API.md).** Probador interactivo en <http://localhost:8000/docs>.
+Consulta [docs/API.md](docs/API.md) o prueba los endpoints en <http://127.0.0.1:8000/docs>.
 
 | Método | Ruta | Descripción | Req. |
 |---|---|---|---|
@@ -194,7 +210,7 @@ Los artefactos generados (modelo, scaler, métricas) se guardan en `ml/artifacts
 | `GET` | `/neo/stats` | KPIs, histogramas de diámetro y velocidad, conteo por grupo | RF05, gráf. 2–4 |
 | `GET` | `/neo/scatter` | Puntos diámetro vs velocidad por grupo (`limit`, máx. 20000) | gráf. 1 |
 | `GET` | `/neo/compare?a=&b=` | Dos NEO lado a lado | RF04, gráf. 5 |
-| `GET` | `/neo/{id}` | Ficha + unidades + todas sus aproximaciones | RF03 |
+| `GET` | `/neo/{neo_id}` | Ficha, unidades y todas sus aproximaciones | RF03 |
 | `GET` | `/satcat` | Lista paginada con filtros | RF01, RF02, RF08 |
 | `GET` | `/satcat/stats` | KPIs, por tipo, por régimen, propietarios, lanzamientos/año, inclinación | RF08, gráf. 6 |
 | `GET` | `/satcat/{norad_id}` | Ficha del objeto | RF03 |
@@ -204,57 +220,65 @@ Los artefactos generados (modelo, scaler, métricas) se guardan en `ml/artifacts
 
 **Filtros NEO** (`/neo`, `/neo/stats`, `/neo/scatter`): `q`, `cluster` (repetible: `?cluster=1&cluster=3`), `hazardous`,
 `diam_min`/`diam_max` (km), `vel_min`/`vel_max` (km/s), `moid_min`/`moid_max` (UA).
-**Filtros SATCAT**: `q`, `object_type` (`PAY`, `R/B`, `DEB`, `UNK`, repetible), `regime` (`LEO`, `MEO`, `GEO`, `HEO`, `NO_TERRESTRE`, `DESCONOCIDO`), `owner`, `in_orbit`.
+**Filtros SATCAT.** `q`, `object_type` (`PAY`, `R/B`, `DEB`, `UNK`), `regime` (`LEO`, `MEO`, `GEO`, `HEO`, `NO_TERRESTRE`, `DESCONOCIDO`), `owner` e `in_orbit`. Se puede repetir `object_type` y `regime`.
 **Listas**: `page`, `page_size` (máx. 500), `sort`, `desc`. Respuesta: `{total, page, page_size, items}`.
 `/stats` acepta `bins` (5–100).
 
-Notas de datos:
+### Interpretación de los datos
+
 - Los grupos se numeran **1..4** (como en los mockups).
 - En `neo_v2.csv` un mismo NEO aparece una vez por aproximación (90,836 filas, 27,423 objetos). Las listas devuelven filas; la ficha, la comparación y la inferencia por `id` usan la aproximación más cercana.
 - El dataset no tiene MOID real: se usa `miss_distance` convertido a UA (`miss_distance_au`). La velocidad viene en km/h y se expone también en km/s (`velocity_km_s`).
-- El régimen orbital SATCAT se deriva de apogeo/perigeo (LEO < 2000 km, GEO ≈ 35786 km, MEO entre ambos, HEO excéntricas).
+- El régimen SATCAT se deriva del centro orbital y de las altitudes de apogeo y perigeo. `in_orbit` indica que el registro carece de una fecha de reingreso.
 
-**Ejemplo de petición a `/ia/inferencia`** (valores ilustrativos):
+### Ejemplo de inferencia
+
+Cuerpo de la petición a `POST /ia/inferencia`:
 
 ```json
 {
   "id": 2162635,
-  "est_diameter_min": 1.1983,
-  "est_diameter_max": 2.6794,
-  "relative_velocity": 13569.25,
-  "miss_distance": 54839744.0,
-  "absolute_magnitude": 16.73
+  "k": 2
 }
 ```
 
-**Respuesta esperada** (ilustrativa):
+Ejemplo de respuesta. `tiempo_ms` varía en cada ejecución.
 
 ```json
 {
   "id": 2162635,
-  "cluster_asignado": 2,
+  "cluster_asignado": 4,
   "objetos_similares": [
-    { "id": 2277475, "distancia": 0.35 },
-    { "id": 2512244, "distancia": 0.48 }
+    { "id": 2154589, "name": "154589 (2003 MX2)", "cluster": 4, "distancia": 0.1868 },
+    { "id": 2137044, "name": "137044 (1998 UC50)", "cluster": 4, "distancia": 0.4327 }
   ],
   "estado": "procesado",
-  "tiempo_ms": 120
+  "tiempo_ms": 1762.9,
+  "aviso": "Grupos exploratorios de K-Means; no constituyen predicción de impacto ni clasificación oficial de riesgo."
 }
 ```
 
-También basta `{"id": 2162635}`; `k` (1–50, por defecto 5) controla cuántos similares devolver. Cada similar incluye `id`, `name`, `cluster` y `distancia`.
+`k` indica cuántos objetos similares se solicitan (de 1 a 50, con 5 por defecto). También se puede enviar el conjunto completo de cinco variables, con los diámetros y la distancia en km y la velocidad en km/h.
 
 ## Pruebas
 
-```bash
-# Backend
-cd backend
-pytest
+Para comprobar la API desde la raíz del repositorio:
 
-# Frontend
+```powershell
+Push-Location backend
+..\.venv\Scripts\python.exe -m pytest
+Pop-Location
+```
+
+Para ejecutar las pruebas del frontend y comprobar la compilación, desde la raíz:
+
+```bash
 cd frontend
 npm test
+npm run build
 ```
+
+El comando de compilación verifica los tipos de TypeScript y genera `frontend/dist/`.
 
 ## Flujo de trabajo en equipo
 
@@ -302,12 +326,12 @@ Luego abre un **Pull Request** hacia `develop` y pide revisión a un compañero.
 
 | Problema | Solución |
 |---|---|
-| `uvicorn: command not found` | Activa el entorno virtual y reinstala: `pip install -r requirements.txt` |
-| `ModuleNotFoundError: app` | Ejecuta `uvicorn` desde la carpeta `backend/` |
-| El frontend no conecta con la API | Revisa que el backend esté en el puerto `8000` y la URL en `.env` |
-| Error de CORS en el navegador | Verifica que `FRONTEND_URL` en `.env` coincida con el puerto del frontend |
-| `Port already in use` | Cambia el puerto (`--port 8001`) o cierra el proceso que lo usa |
-| Conflictos al hacer merge | Resuélvelos en VS Code (botones *Accept Current / Incoming*) y vuelve a hacer commit |
+| Python no encuentra Uvicorn | Instala `backend/requirements.txt` con el intérprete de `.venv`. |
+| `ModuleNotFoundError: app` al iniciar la API | Ejecuta Uvicorn desde la raíz con `--app-dir backend`. |
+| El frontend no conecta con la API | Comprueba que `http://127.0.0.1:8000/health` responda. Si cambias el puerto de la API, ajusta también el destino del proxy en `frontend/vite.config.ts`. |
+| Error de CORS al consultar la API directamente | Ajusta `FRONTEND_URL` al origen exacto del frontend y reinicia la API. |
+| Falta el modelo o cambió el catálogo NEO | Regenera los artefactos siguiendo el [pipeline de datos y modelo](#pipeline-de-datos-y-modelo). |
+| Puerto ocupado | Libera el puerto antes de iniciar el servicio. |
 
 ## Equipo
 
